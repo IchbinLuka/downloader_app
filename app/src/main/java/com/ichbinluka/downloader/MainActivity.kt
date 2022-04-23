@@ -1,6 +1,9 @@
 package com.ichbinluka.downloader
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -14,45 +17,38 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.ichbinluka.downloader.ui.theme.DownloaderTheme
+import com.ichbinluka.downloader.workers.DownloadWorker
+import com.yausername.ffmpeg.FFmpeg
+import com.yausername.youtubedl_android.YoutubeDL
 
 class MainActivity : ComponentActivity() {
 
     companion object {
         const val TAG = "MainActivity"
+        const val NOTIFICATION_CHANNEL_ID = "downloader"
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, intent.action ?: "")
-        Log.d(TAG, intent.dataString ?: "")
 
-        val model: MainViewModel by viewModels()
+        val url = intent.getStringExtra(Intent.EXTRA_TEXT)
 
+        if (url != null) {
+            YoutubeDL.getInstance().init(this)
+            FFmpeg.getInstance().init(this)
 
-        setContent {
-            DownloaderTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color.Transparent
-                ) {
-                    Greeting(intent.getStringExtra(Intent.EXTRA_TEXT) ?: "")
-                }
-            }
+            val data = Data.Builder()
+                .putString(DownloadWorker.CHANNEL_ID_KEY, NOTIFICATION_CHANNEL_ID)
+                .putString("url", url)
+                .build()
+            val request = OneTimeWorkRequestBuilder<DownloadWorker>().setInputData(data)
+            WorkManager.getInstance().enqueue(request.build())
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    DownloaderTheme {
-        Greeting("Android")
+        finish()
     }
 }
