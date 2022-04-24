@@ -6,10 +6,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.util.Log
+import androidx.compose.ui.res.stringResource
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -44,7 +46,7 @@ class DownloadWorker(
         .setOnlyAlertOnce(true)
         .setProgress(100, 0, false)
         .setAutoCancel(true)
-        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setSmallIcon(R.drawable.ic_launcher_big)
 
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -60,13 +62,13 @@ class DownloadWorker(
         if (url != "") {
             val request = YoutubeDLRequest(url).apply {
                 addOption("-o", "${dir.absolutePath}/%(title)s.%(ext)s")
-                addOption("-f", "\"bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b\"")
+                addOption("-S", "ext")
             }
             withContext(Dispatchers.IO) {
                 try {
                     launch {
                         val info = ytDL.getInfo(url)
-                        notification.setContentTitle("Downloading ${info.title}")
+                        notification.setContentTitle(applicationContext.getString(R.string.downloading, info.title))
                         updateNotification()
                     }
                     val response = ytDL.execute(request) {
@@ -74,23 +76,32 @@ class DownloadWorker(
                         notification.setProgress(100, progress.toInt(), false)
                         updateNotification()
                     }
-                    val index = response.out.lastIndexOf(DESTINATION_TERM) + DESTINATION_TERM.length + 1
-                    val path = response.out.substring(startIndex = index).takeWhile { it != '\n' }
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(path)).apply { type = "video/*" }
-                    val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-                        PendingIntent.FLAG_IMMUTABLE
-                    } else {
-                        0
+                    Log.d(TAG, response.out)
+                    var index = response.out.lastIndexOf(MERGER_TERM) + MERGER_TERM.length + 1
+                    if (index == -1) {
+                        index = response.out.lastIndexOf(DESTINATION_TERM) + DESTINATION_TERM.length + 1
                     }
-                    notification.apply {
-                        setProgress(1, 1, false)
-                        setContentIntent(PendingIntent.getActivity(applicationContext, 0, intent, flags, null))
-                        setContentTitle("Finished")
+                    val path = response.out.substring(startIndex = index).takeWhile { it != '\n' && it != '"' }
+
+                    MediaScannerConnection.scanFile(applicationContext, arrayOf(path), null) { _, uri ->
+                        val intent = Intent(Intent.ACTION_VIEW, uri).apply { type = "video/*" }
+                        val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+                            PendingIntent.FLAG_IMMUTABLE
+                        } else {
+                            0
+                        }
+                        // TODO: Fix gallery activity not starting into video
+                        notification.apply {
+                            setProgress(1, 1, false)
+                            setContentIntent(PendingIntent.getActivity(applicationContext, 0, intent, flags, null))
+                            setContentTitle("Finished")
+                        }
+                        updateNotification()
                     }
-                    updateNotification()
 
                 } catch (e: Exception) {
                     Log.e(TAG, e.message ?: "")
+                    notification.setContentTitle(applicationContext.getString(R.string.download_error))
                 }
             }
 
@@ -119,5 +130,6 @@ class DownloadWorker(
         const val CHANNEL_ID_KEY = "channel_id"
         const val TAG = "Download Worker"
         private const val DESTINATION_TERM = "Destination:"
+        private const val MERGER_TERM = "[Merger] Merging formats into "
     }
 }
