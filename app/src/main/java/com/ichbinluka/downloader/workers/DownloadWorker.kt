@@ -1,17 +1,14 @@
 package com.ichbinluka.downloader.workers
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.MediaScannerConnection
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.util.Log
-import androidx.compose.ui.res.stringResource
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -23,7 +20,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.lang.Exception
+import java.util.*
 
 class DownloadWorker(
     context: Context,
@@ -54,15 +53,13 @@ class DownloadWorker(
         initNotificationChannel()
         notificationManager.notify(0, notification.build())
 
-        Log.d(TAG, inputData.toString())
-
         val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "downloader")
         val url = inputData.getString("url")
-        Log.d(TAG, url!!)
         if (url != "") {
             val request = YoutubeDLRequest(url).apply {
                 addOption("-o", "${dir.absolutePath}/%(title)s.%(ext)s")
                 addOption("-S", "ext")
+                addOption("--no-mtime") // Use current time as last modified date
             }
             withContext(Dispatchers.IO) {
                 try {
@@ -76,23 +73,29 @@ class DownloadWorker(
                         notification.setProgress(100, progress.toInt(), false)
                         updateNotification()
                     }
-                    Log.d(TAG, response.out)
-                    var index = response.out.lastIndexOf(MERGER_TERM) + MERGER_TERM.length + 1
-                    if (index == -1) {
-                        index = response.out.lastIndexOf(DESTINATION_TERM) + DESTINATION_TERM.length + 1
+                    //Log.d(TAG, response.out)
+                    val mergerIndex = response.out.lastIndexOf(MERGER_TERM)
+                    val index = if (mergerIndex == -1) {
+                        response.out.lastIndexOf(DESTINATION_TERM) + DESTINATION_TERM.length + 1
+                    } else {
+                        mergerIndex + MERGER_TERM.length + 1
                     }
-                    val path = response.out.substring(startIndex = index).takeWhile { it != '\n' && it != '"' }
 
-                    MediaScannerConnection.scanFile(applicationContext, arrayOf(path), null) { _, uri ->
-                        val intent = Intent(Intent.ACTION_VIEW, uri).apply { type = "video/*" }
+                    val path = response.out.substring(startIndex = index).takeWhile { it != '\n' && it != '"' }
+                    // Manually set the last modified date to current time since yt-dlp does not seem
+                    // to do this very reliable
+                    val file = File(path)
+                    file.setLastModified(Calendar.getInstance().timeInMillis)
+
+                    MediaScannerConnection.scanFile(applicationContext, arrayOf(path), null) { s, uri ->
+                        val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "video/*") }
                         val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
                             PendingIntent.FLAG_IMMUTABLE
                         } else {
                             0
                         }
-                        // TODO: Fix gallery activity not starting into video
                         notification.apply {
-                            setProgress(1, 1, false)
+                            setProgress(0, 0, false)
                             setContentIntent(PendingIntent.getActivity(applicationContext, 0, intent, flags, null))
                             setContentTitle("Finished")
                         }
@@ -102,6 +105,9 @@ class DownloadWorker(
                 } catch (e: Exception) {
                     Log.e(TAG, e.message ?: "")
                     notification.setContentTitle(applicationContext.getString(R.string.download_error))
+                    notification.setProgress(0, 0, false)
+                    updateNotification()
+                    return@withContext Result.failure()
                 }
             }
 
