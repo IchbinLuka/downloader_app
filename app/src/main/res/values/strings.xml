@@ -3,4 +3,8 @@
     <string name="downloading">Downloading %1$s</string>
     <string name="downloading_finished">Finished</string>
     <string name="download_error">An Error occurred</string>
+
+    <string name="unsupported_platform_warning">The support for this platform is unsupported/untested</string>
+    <string name="warning_cancel">Cancel</string>
+    <string name="warning_approve">Try anyway</string>
 </resources>
