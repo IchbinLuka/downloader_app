@@ -19,20 +19,25 @@ import com.ichbinluka.downloader.ui.theme.DownloaderTheme
 import com.ichbinluka.downloader.ui.theme.surfaceVariant
 
 @Preview(
-    heightDp = 600,
-    widthDp = 300,
+    //heightDp = 600,
+    //widthDp = 300,
     uiMode = UI_MODE_NIGHT_YES
 )
 @Preview(
-    heightDp = 600,
-    widthDp = 300,
+    //heightDp = 600,
+    //widthDp = 300,
     uiMode = UI_MODE_NIGHT_NO
 )
 @Composable
 fun Preview() {
     DownloaderTheme {
-        Warning(onApprove = { /*TODO*/ }) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Warning(onApprove = { /*TODO*/ }) {
 
+            }
         }
     }
 }
@@ -44,7 +49,8 @@ fun Warning(
 ) {
     Surface(
         modifier = Modifier
-            .fillMaxWidth(0.6f)
+            .sizeIn(maxWidth = 600.dp)
+            .fillMaxWidth(fraction = 0.8f)
             .wrapContentHeight()
             .clip(RoundedCornerShape(30.dp))
     ) {
