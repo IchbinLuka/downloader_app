@@ -86,8 +86,16 @@ class DownloadWorker(
                     // to do this very reliable
                     val file = File(path)
                     file.setLastModified(Calendar.getInstance().timeInMillis)
+                    var i = 0
+                    var endFile: File
+                    do {
+                        endFile = File(file.path + " ($i)")
+                        i++
+                    } while (endFile.exists())
 
-                    MediaScannerConnection.scanFile(applicationContext, arrayOf(path), null) { s, uri ->
+                    file.renameTo(endFile)
+
+                    MediaScannerConnection.scanFile(applicationContext, arrayOf(file.path), null) { s, uri ->
                         val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "video/*") }
                         val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
                             PendingIntent.FLAG_IMMUTABLE
