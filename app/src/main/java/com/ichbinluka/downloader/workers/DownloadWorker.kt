@@ -63,11 +63,9 @@ class DownloadWorker(
             }
             withContext(Dispatchers.IO) {
                 try {
-                    launch {
-                        val info = ytDL.getInfo(url)
-                        notification.setContentTitle(applicationContext.getString(R.string.downloading, info.title))
-                        updateNotification()
-                    }
+                    val info = ytDL.getInfo(url)
+                    notification.setContentTitle(applicationContext.getString(R.string.downloading, info.title))
+                    updateNotification()
                     val response = ytDL.execute(request) {
                         progress: Float, _, _ ->
                         notification.setProgress(100, progress.toInt(), false)
@@ -89,13 +87,14 @@ class DownloadWorker(
                     var i = 0
                     var endFile: File
                     do {
-                        endFile = File(file.path + " ($i)")
+                        val index = file.path.lastIndexOf(".")
+                        endFile = File(file.path.replaceRange(index, index, " ($i)"))
                         i++
                     } while (endFile.exists())
 
                     file.renameTo(endFile)
 
-                    MediaScannerConnection.scanFile(applicationContext, arrayOf(file.path), null) { s, uri ->
+                    MediaScannerConnection.scanFile(applicationContext, arrayOf(endFile.path), null) { s, uri ->
                         val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "video/*") }
                         val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
                             PendingIntent.FLAG_IMMUTABLE
