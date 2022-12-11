@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    compileSdk 31
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.ichbinluka.downloader"
-        minSdk 21
-        targetSdk 31
+        minSdk 23
+        targetSdk 33
         versionCode 1
         versionName "1.0"
 
@@ -61,8 +61,8 @@ android {
 
 dependencies {
 
-    implementation 'com.github.yausername.youtubedl-android:library:0.13.+'
-    implementation 'com.github.yausername.youtubedl-android:ffmpeg:0.13.+'
+    implementation 'com.github.yausername.youtubedl-android:library:0.13.2'
+    implementation 'com.github.yausername.youtubedl-android:ffmpeg:0.13.2'
 
     implementation "androidx.compose.material3:material3:1.0.0-alpha10"
 

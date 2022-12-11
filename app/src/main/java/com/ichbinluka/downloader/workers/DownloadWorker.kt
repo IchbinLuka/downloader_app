@@ -1,5 +1,6 @@
 package com.ichbinluka.downloader.workers
 
+import activities.DownloaderActivity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -12,15 +13,12 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.ichbinluka.downloader.MainActivity
 import com.ichbinluka.downloader.R
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.IOException
 import java.lang.Exception
 import java.util.*
 
@@ -52,7 +50,6 @@ class DownloadWorker(
     override suspend fun doWork(): Result {
         initNotificationChannel()
         notificationManager.notify(0, notification.build())
-
         val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "downloader")
         val url = inputData.getString("url")
         if (url != "") {
@@ -95,18 +92,21 @@ class DownloadWorker(
                     file.renameTo(endFile)
 
                     MediaScannerConnection.scanFile(applicationContext, arrayOf(endFile.path), null) { s, uri ->
-                        val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "video/*") }
-                        val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-                            PendingIntent.FLAG_IMMUTABLE
-                        } else {
-                            0
+                        val intent = inputData.keyValueMap["afterIntent"]
+                        if (intent != null && intent is Intent) {
+                            intent.data = uri
+                            val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+                                PendingIntent.FLAG_IMMUTABLE
+                            } else {
+                                0
+                            }
+                            notification.apply {
+                                setProgress(0, 0, false)
+                                setContentIntent(PendingIntent.getActivity(applicationContext, 0, intent, flags, null))
+                                setContentTitle("Finished")
+                            }
+                            updateNotification()
                         }
-                        notification.apply {
-                            setProgress(0, 0, false)
-                            setContentIntent(PendingIntent.getActivity(applicationContext, 0, intent, flags, null))
-                            setContentTitle("Finished")
-                        }
-                        updateNotification()
                     }
 
                 } catch (e: Exception) {
@@ -129,7 +129,7 @@ class DownloadWorker(
     private fun initNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                MainActivity.NOTIFICATION_CHANNEL_ID,
+                DownloaderActivity.NOTIFICATION_CHANNEL_ID,
                 "Downloader",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
