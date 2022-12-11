@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.ichbinluka.downloader.R
 import com.ichbinluka.downloader.ui.theme.DownloaderTheme
 import com.ichbinluka.downloader.ui.theme.surfaceVariant
+import com.ichbinluka.downloader.ui.widgets.RoundButton
 
 @Preview(
     //heightDp = 600,
@@ -74,22 +75,5 @@ fun Warning(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun RoundButton(
-    onClick: () -> Unit,
-    colors: ButtonColors,
-    title: String,
-    modifier: Modifier = Modifier
-) {
-    Button(
-        onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        colors = colors,
-        modifier = modifier.padding(10.dp)
-        ) {
-        Text(text = title, softWrap = false, textAlign = TextAlign.Center)
     }
 }

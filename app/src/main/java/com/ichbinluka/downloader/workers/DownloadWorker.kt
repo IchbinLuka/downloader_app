@@ -17,18 +17,16 @@ import com.ichbinluka.downloader.R
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.IOException
 import java.lang.Exception
 import java.util.*
 
 class DownloadWorker(
     context: Context,
     params: WorkerParameters,
-) : CoroutineWorker(
-    params = params, appContext = context
+) : NotificationWorker(
+    context = context, params = params, id = 0
 ) {
     private val ytDL: YoutubeDL by lazy {
         YoutubeDL.getInstance()
@@ -36,7 +34,7 @@ class DownloadWorker(
 
     private val channelId: String = inputData.getString(CHANNEL_ID_KEY) ?: ""
 
-    private val notification: NotificationCompat.Builder = NotificationCompat.Builder(
+    override val notification: NotificationCompat.Builder = NotificationCompat.Builder(
         context,
         channelId
     )
@@ -46,8 +44,6 @@ class DownloadWorker(
         .setProgress(100, 0, false)
         .setAutoCancel(true)
         .setSmallIcon(R.drawable.ic_launcher_big)
-
-    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     override suspend fun doWork(): Result {
         initNotificationChannel()
@@ -122,14 +118,10 @@ class DownloadWorker(
         return Result.success()
     }
 
-    private fun updateNotification() {
-        notificationManager.notify(0, notification.build())
-    }
-
     private fun initNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                MainActivity.NOTIFICATION_CHANNEL_ID,
+                MainActivity.NOTIFICATION_DOWNLOAD_CHANNEL_ID,
                 "Downloader",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
