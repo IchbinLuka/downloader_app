@@ -17,7 +17,7 @@
         android:extractNativeLibs="true"
         android:theme="@style/Theme.Downloader">
         <activity
-            android:name="activities.VideoDownloaderActivity"
+            android:name=".activities.VideoDownloaderActivity"
             android:exported="true"
             android:label="@string/download_video"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
@@ -37,7 +37,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="activities.MusicDownloaderActivity"
+            android:name=".activities.MusicDownloaderActivity"
             android:exported="true"
             android:label="@string/download_music"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">

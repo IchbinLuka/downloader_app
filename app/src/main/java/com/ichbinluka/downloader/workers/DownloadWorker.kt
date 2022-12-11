@@ -1,6 +1,6 @@
 package com.ichbinluka.downloader.workers
 
-import activities.DownloaderActivity
+import com.ichbinluka.downloader.activities.DownloaderActivity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -22,12 +22,16 @@ import java.io.File
 import java.lang.Exception
 import java.util.*
 
-class DownloadWorker(
+abstract class DownloadWorker(
     context: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(
     params = params, appContext = context
 ) {
+    protected abstract val afterIntent: Intent
+
+    protected open val ytDLArgs = listOf<Pair<String, String?>>()
+
     private val ytDL: YoutubeDL by lazy {
         YoutubeDL.getInstance()
     }
@@ -57,6 +61,14 @@ class DownloadWorker(
                 addOption("-o", "${dir.absolutePath}/%(title)s.%(ext)s")
                 addOption("-S", "ext")
                 addOption("--no-mtime") // Use current time as last modified date
+
+                for (arg in ytDLArgs) {
+                    if (arg.second == null) {
+                        addOption(arg.first)
+                    } else {
+                        addOption(arg.first, arg.second!!)
+                    }
+                }
             }
             withContext(Dispatchers.IO) {
                 try {
@@ -92,21 +104,18 @@ class DownloadWorker(
                     file.renameTo(endFile)
 
                     MediaScannerConnection.scanFile(applicationContext, arrayOf(endFile.path), null) { s, uri ->
-                        val intent = inputData.keyValueMap["afterIntent"]
-                        if (intent != null && intent is Intent) {
-                            intent.data = uri
-                            val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-                                PendingIntent.FLAG_IMMUTABLE
-                            } else {
-                                0
-                            }
-                            notification.apply {
-                                setProgress(0, 0, false)
-                                setContentIntent(PendingIntent.getActivity(applicationContext, 0, intent, flags, null))
-                                setContentTitle("Finished")
-                            }
-                            updateNotification()
+                        afterIntent.data = uri
+                        val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+                            PendingIntent.FLAG_IMMUTABLE
+                        } else {
+                            0
                         }
+                        notification.apply {
+                            setProgress(0, 0, false)
+                            setContentIntent(PendingIntent.getActivity(applicationContext, 0, afterIntent, flags, null))
+                            setContentTitle("Finished")
+                        }
+                        updateNotification()
                     }
 
                 } catch (e: Exception) {

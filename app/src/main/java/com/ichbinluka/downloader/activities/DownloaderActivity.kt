@@ -1,4 +1,4 @@
-package activities
+package com.ichbinluka.downloader.activities
 
 import android.Manifest
 import android.content.Intent
@@ -29,8 +29,7 @@ abstract class DownloaderActivity : ComponentActivity() {
         const val NOTIFICATION_CHANNEL_ID = "downloader"
     }
 
-    protected abstract val afterIntent: Intent
-
+    protected abstract val requestBuilder: OneTimeWorkRequest.Builder
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,11 +52,10 @@ abstract class DownloaderActivity : ComponentActivity() {
             val data = Data.Builder()
                 .putString(DownloadWorker.CHANNEL_ID_KEY, NOTIFICATION_CHANNEL_ID)
                 .putAll(mapOf(
-                    Pair("afterIntent", Intent()),
                     Pair("url", url)
                 ))
                 .build()
-            val request = OneTimeWorkRequestBuilder<DownloadWorker>().setInputData(data)
+            val request = requestBuilder.setInputData(data)
             if (!supportedPlatforms.any { url.matches(it) }) {
                 setContent {
                     DownloaderTheme {

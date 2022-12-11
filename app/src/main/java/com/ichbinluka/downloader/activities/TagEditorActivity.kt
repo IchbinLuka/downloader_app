@@ -1,4 +1,4 @@
-package activities
+package com.ichbinluka.downloader.activities
 
 import android.app.Activity
 
