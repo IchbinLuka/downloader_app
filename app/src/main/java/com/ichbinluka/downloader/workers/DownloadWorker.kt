@@ -1,6 +1,5 @@
 package com.ichbinluka.downloader.workers
 
-import com.ichbinluka.downloader.activities.DownloaderActivity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -14,12 +13,12 @@ import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.ichbinluka.downloader.R
+import com.ichbinluka.downloader.activities.DownloaderActivity
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.lang.Exception
 import java.util.*
 
 abstract class DownloadWorker(
@@ -54,7 +53,13 @@ abstract class DownloadWorker(
     override suspend fun doWork(): Result {
         initNotificationChannel()
         notificationManager.notify(0, notification.build())
-        val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "downloader")
+        // Update youtube dl
+        val status = ytDL.updateYoutubeDL(applicationContext)
+
+        val dir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "downloader"
+        )
         val url = inputData.getString("url")
         if (url != "") {
             val request = YoutubeDLRequest(url).apply {
