@@ -1,7 +1,5 @@
 package com.ichbinluka.downloader.data
 
-import java.util.regex.Pattern
-
 const val httpsRegex = "(https://|http://)"
 
 val supportedPlatforms = listOf(
@@ -10,5 +8,6 @@ val supportedPlatforms = listOf(
     "${httpsRegex}www.reddit(.*)",
     "${httpsRegex}redd.it(.*)",
     "${httpsRegex}(www.)?tiktok.com(.*)",
-    "${httpsRegex}(www.)?twitter.com(.*)"
+    "${httpsRegex}(www.)?twitter.com(.*)",
+    "${httpsRegex}(www.)?music.youtube.com(.*)"
 ).map { Regex(it) }

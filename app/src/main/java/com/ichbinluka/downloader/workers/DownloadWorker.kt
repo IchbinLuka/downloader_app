@@ -54,7 +54,6 @@ abstract class DownloadWorker(
         initNotificationChannel()
         notificationManager.notify(0, notification.build())
         // Update youtube dl
-        val status = ytDL.updateYoutubeDL(applicationContext)
 
         val dir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
@@ -65,6 +64,7 @@ abstract class DownloadWorker(
             val request = YoutubeDLRequest(url).apply {
                 addOption("-o", "${dir.absolutePath}/%(title)s.%(ext)s")
                 addOption("-S", "ext")
+                addOption("--add-metadata")
                 addOption("--no-mtime") // Use current time as last modified date
 
                 for (arg in ytDLArgs) {
@@ -133,6 +133,7 @@ abstract class DownloadWorker(
             }
 
         }
+        val status = ytDL.updateYoutubeDL(applicationContext)
         return Result.success()
     }
 
