@@ -14,6 +14,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.ichbinluka.downloader.R
 import com.ichbinluka.downloader.activities.DownloaderActivity
+import com.ichbinluka.downloader.util.NotificationId
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
@@ -48,11 +49,14 @@ abstract class DownloadWorker(
         .setAutoCancel(true)
         .setSmallIcon(R.drawable.ic_launcher_big)
 
-    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private val notificationManager =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    private val notificationId = NotificationId.newId
 
     override suspend fun doWork(): Result {
         initNotificationChannel()
-        notificationManager.notify(0, notification.build())
+        notificationManager.notify(notificationId, notification.build())
         // Update youtube dl
 
         val dir = File(
@@ -80,8 +84,12 @@ abstract class DownloadWorker(
                     val info = ytDL.getInfo(url)
                     notification.setContentTitle(applicationContext.getString(R.string.downloading, info.title))
                     updateNotification()
-                    val response = ytDL.execute(request) {
-                        progress: Float, _, _ ->
+                    var currentProgress: Float = 0f
+                    val response = ytDL.execute(request) { progress: Float, _, _ ->
+                        if (currentProgress > progress) {
+                            notification.setContentTitle(applicationContext.getString(R.string.converting))
+                        }
+                        currentProgress = progress
                         notification.setProgress(100, progress.toInt(), false)
                         updateNotification()
                     }
@@ -138,7 +146,7 @@ abstract class DownloadWorker(
     }
 
     private fun updateNotification() {
-        notificationManager.notify(0, notification.build())
+        notificationManager.notify(notificationId, notification.build())
     }
 
     private fun initNotificationChannel() {

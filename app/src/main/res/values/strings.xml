@@ -3,6 +3,7 @@
     <string name="download_video">Download Video</string>
     <string name="download_music">Download Music</string>
     <string name="downloading">Downloading %1$s</string>
+    <string name="converting">Converting</string>
     <string name="downloading_finished">Finished</string>
     <string name="download_error">An Error occurred</string>
 
