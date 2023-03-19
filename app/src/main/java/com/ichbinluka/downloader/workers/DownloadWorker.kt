@@ -86,7 +86,7 @@ abstract class DownloadWorker(
                     updateNotification()
                     var currentProgress: Float = 0f
                     val response = ytDL.execute(request) { progress: Float, _, _ ->
-                        if (currentProgress > progress) {
+                        if (currentProgress > progress + 0.3f) {
                             notification.setContentTitle(applicationContext.getString(R.string.converting))
                         }
                         currentProgress = progress
