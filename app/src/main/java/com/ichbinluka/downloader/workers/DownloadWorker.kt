@@ -15,7 +15,10 @@ import androidx.work.WorkerParameters
 import com.ichbinluka.downloader.R
 import com.ichbinluka.downloader.activities.DownloaderActivity
 import com.ichbinluka.downloader.util.NotificationId
+import com.yausername.aria2c.Aria2c
+import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
+import com.yausername.youtubedl_android.YoutubeDLException
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -54,20 +57,32 @@ abstract class DownloadWorker(
 
     private val notificationId = NotificationId.newId
 
+    private fun initLibraries() {
+        try {
+            ytDL.init(applicationContext)
+            FFmpeg.init(applicationContext)
+            Aria2c.init(applicationContext)
+        } catch (e: YoutubeDLException) {
+            Log.e(TAG, "failed to initialize libraries", e)
+        }
+    }
+
     override suspend fun doWork(): Result {
         initNotificationChannel()
         notificationManager.notify(notificationId, notification.build())
         // Update youtube dl
+        initLibraries()
 
         val dir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
             "downloader"
         )
-        val url = inputData.getString("url")
+        val url = inputData.getString("url") ?: return Result.failure()
         if (url != "") {
             val request = YoutubeDLRequest(url).apply {
                 addOption("-o", "${dir.absolutePath}/%(title)s.%(ext)s")
                 addOption("-S", "ext")
+                addOption("--audio-quality", "0")
                 addOption("--add-metadata")
                 addOption("--no-mtime") // Use current time as last modified date
 

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.ichbinluka.downloader">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -18,7 +17,7 @@
         android:extractNativeLibs="true"
         android:theme="@style/Theme.Downloader">
         <activity
-            android:name=".activities.VideoDownloaderActivity"
+            android:name="com.ichbinluka.downloader.activities.VideoDownloaderActivity"
             android:exported="true"
             android:label="@string/download_video"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
@@ -38,7 +37,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".activities.MusicDownloaderActivity"
+            android:name="com.ichbinluka.downloader.activities.MusicDownloaderActivity"
             android:exported="true"
             android:label="@string/download_music"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">

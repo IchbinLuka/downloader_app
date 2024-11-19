@@ -84,8 +84,8 @@ abstract class DownloaderActivity : ComponentActivity() {
 
     }
 
-    private inline fun startDownload(request: OneTimeWorkRequest.Builder) {
-        WorkManager.getInstance().enqueue(request.build())
+    private fun startDownload(request: OneTimeWorkRequest.Builder) {
+        WorkManager.getInstance(this).enqueue(request.build())
         finish()
     }
 }
