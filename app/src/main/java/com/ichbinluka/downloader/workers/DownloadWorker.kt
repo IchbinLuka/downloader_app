@@ -99,7 +99,7 @@ abstract class DownloadWorker(
                     val info = ytDL.getInfo(url)
                     notification.setContentTitle(applicationContext.getString(R.string.downloading, info.title))
                     updateNotification()
-                    var currentProgress: Float = 0f
+                    var currentProgress = 0f
                     val response = ytDL.execute(request) { progress: Float, _, _ ->
                         if (currentProgress > progress + 0.3f) {
                             notification.setContentTitle(applicationContext.getString(R.string.converting))

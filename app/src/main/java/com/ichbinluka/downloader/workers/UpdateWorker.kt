@@ -4,7 +4,9 @@ import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.work.Constraints
 import androidx.work.CoroutineWorker
+import androidx.work.NetworkType
 import androidx.work.WorkerParameters
 import com.ichbinluka.downloader.R
 import com.ichbinluka.downloader.util.NotificationId
@@ -25,7 +27,7 @@ class UpdateWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
         .setOnlyAlertOnce(true)
         .setProgress(0, 0, true)
         .setAutoCancel(true)
-        .setSmallIcon(com.ichbinluka.downloader.R.drawable.ic_launcher_big)
+        .setSmallIcon(R.drawable.ic_launcher_big)
 
     private val notificationId = NotificationId.newId
     private val notificationManager =
@@ -68,5 +70,9 @@ class UpdateWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
     companion object {
         private const val TAG = "UpdateWorker"
         private const val NOTIFICATION_CHANNEL_ID = "update_worker_channel"
+
+        val CONSTRAINTS = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.UNMETERED)
+            .build()
     }
 }

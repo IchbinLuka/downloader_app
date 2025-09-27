@@ -5,6 +5,5 @@ import androidx.work.OneTimeWorkRequestBuilder
 import com.ichbinluka.downloader.workers.VideoDownloadWorker
 
 class VideoDownloaderActivity: DownloaderActivity() {
-    override val requestBuilder: OneTimeWorkRequest.Builder
-        get() = OneTimeWorkRequestBuilder<VideoDownloadWorker>()
+    override fun getDownloadRequestBuilder(): OneTimeWorkRequest.Builder = OneTimeWorkRequestBuilder<VideoDownloadWorker>()
 }

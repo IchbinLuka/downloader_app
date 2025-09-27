@@ -11,15 +11,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
-import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.ichbinluka.downloader.data.supportedPlatforms
 import com.ichbinluka.downloader.ui.theme.DownloaderTheme
+import com.ichbinluka.downloader.ui.views.MainPage
 import com.ichbinluka.downloader.ui.views.Warning
 import com.ichbinluka.downloader.workers.DownloadWorker
 import com.ichbinluka.downloader.workers.UpdateWorker
@@ -30,16 +29,15 @@ import java.util.concurrent.TimeUnit
 abstract class DownloaderActivity : ComponentActivity() {
 
     companion object {
-        const val TAG = "MainActivity"
         const val NOTIFICATION_CHANNEL_ID = "downloader"
     }
 
-    protected abstract val requestBuilder: OneTimeWorkRequest.Builder
+    abstract fun getDownloadRequestBuilder(): OneTimeWorkRequest.Builder
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val permissions = mutableListOf<String>(
+        val permissions = mutableListOf(
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
         )
@@ -64,7 +62,8 @@ abstract class DownloaderActivity : ComponentActivity() {
                     Pair("url", url)
                 ))
                 .build()
-            val request = requestBuilder.setInputData(data)
+            val builder = getDownloadRequestBuilder()
+            val request = builder.setInputData(data)
             if (!supportedPlatforms.any { url.matches(it) }) {
                 setContent {
                     DownloaderTheme {
@@ -87,7 +86,21 @@ abstract class DownloaderActivity : ComponentActivity() {
                 startDownload(request)
             }
 
-        } else finish()
+        } else {
+            setContent {
+                DownloaderTheme {
+                    MainPage(
+                        onUpdate = {
+                            updateYtDl()
+                            finish()
+                        },
+                        onQuit = {
+                            finish()
+                        }
+                    )
+                }
+            }
+        }
 
     }
 
@@ -96,12 +109,16 @@ abstract class DownloaderActivity : ComponentActivity() {
         finish()
     }
 
-    private fun initUpdateWorker() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.UNMETERED)
+    private fun updateYtDl() {
+        val request = OneTimeWorkRequest.Builder(UpdateWorker::class.java)
+            .setConstraints(UpdateWorker.CONSTRAINTS)
             .build()
+        WorkManager.getInstance(this).enqueue(request)
+    }
+
+    private fun initUpdateWorker() {
         val work = PeriodicWorkRequestBuilder<UpdateWorker>(1, TimeUnit.DAYS)
-            .setConstraints(constraints)
+            .setConstraints(UpdateWorker.CONSTRAINTS)
             .build()
         val workManager = WorkManager.getInstance(this)
         workManager.enqueueUniquePeriodicWork(
