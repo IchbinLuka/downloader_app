@@ -11,15 +11,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
+import androidx.work.Constraints
 import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.ichbinluka.downloader.data.supportedPlatforms
 import com.ichbinluka.downloader.ui.theme.DownloaderTheme
 import com.ichbinluka.downloader.ui.views.Warning
 import com.ichbinluka.downloader.workers.DownloadWorker
+import com.ichbinluka.downloader.workers.UpdateWorker
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
+import java.util.concurrent.TimeUnit
 
 abstract class DownloaderActivity : ComponentActivity() {
 
@@ -45,8 +51,9 @@ abstract class DownloaderActivity : ComponentActivity() {
         }
         ActivityCompat.requestPermissions(this, permissions.toTypedArray(), 1)
 
-        val url = intent.getStringExtra(Intent.EXTRA_TEXT)
+        initUpdateWorker()
 
+        val url = intent.getStringExtra(Intent.EXTRA_TEXT)
         if (url != null) {
             YoutubeDL.getInstance().init(this)
             FFmpeg.getInstance().init(this)
@@ -87,5 +94,20 @@ abstract class DownloaderActivity : ComponentActivity() {
     private fun startDownload(request: OneTimeWorkRequest.Builder) {
         WorkManager.getInstance(this).enqueue(request.build())
         finish()
+    }
+
+    private fun initUpdateWorker() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.UNMETERED)
+            .build()
+        val work = PeriodicWorkRequestBuilder<UpdateWorker>(1, TimeUnit.DAYS)
+            .setConstraints(constraints)
+            .build()
+        val workManager = WorkManager.getInstance(this)
+        workManager.enqueueUniquePeriodicWork(
+            "updater",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            work,
+        )
     }
 }

@@ -6,6 +6,8 @@
     <string name="converting">Converting</string>
     <string name="downloading_finished">Finished</string>
     <string name="download_error">An Error occurred</string>
+    <string name="update_error">Could not update yt-dlp executable</string>
+    <string name="updating_ytdlp">Updating yt-dlp</string>
 
     <string name="unsupported_platform_warning">The support for this platform is unsupported/untested</string>
     <string name="warning_cancel">Cancel</string>

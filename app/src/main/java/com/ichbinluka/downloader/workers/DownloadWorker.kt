@@ -46,7 +46,7 @@ abstract class DownloadWorker(
         channelId
     )
         .setPriority(NotificationCompat.PRIORITY_HIGH)
-        .setContentTitle("Downloading")
+        .setContentTitle(applicationContext.getString(R.string.downloading, ""))
         .setOnlyAlertOnce(true)
         .setProgress(100, 0, false)
         .setAutoCancel(true)
@@ -133,15 +133,11 @@ abstract class DownloadWorker(
 
                     MediaScannerConnection.scanFile(applicationContext, arrayOf(endFile.path), null) { s, uri ->
                         afterIntent.data = uri
-                        val flags = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-                            PendingIntent.FLAG_IMMUTABLE
-                        } else {
-                            0
-                        }
+                        val flags = PendingIntent.FLAG_IMMUTABLE
                         notification.apply {
                             setProgress(0, 0, false)
                             setContentIntent(PendingIntent.getActivity(applicationContext, 0, afterIntent, flags, null))
-                            setContentTitle("Finished")
+                            setContentTitle(applicationContext.getString(R.string.downloading_finished))
                         }
                         updateNotification()
                     }
@@ -149,6 +145,7 @@ abstract class DownloadWorker(
                 } catch (e: Exception) {
                     Log.e(TAG, e.message ?: "")
                     notification.setContentTitle(applicationContext.getString(R.string.download_error))
+                    notification.setContentText(e.message)
                     notification.setProgress(0, 0, false)
                     updateNotification()
                     return@withContext Result.failure()
@@ -156,7 +153,6 @@ abstract class DownloadWorker(
             }
 
         }
-        val status = ytDL.updateYoutubeDL(applicationContext)
         return Result.success()
     }
 
