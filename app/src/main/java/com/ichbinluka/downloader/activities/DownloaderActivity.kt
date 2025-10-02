@@ -14,12 +14,14 @@ import androidx.core.app.ActivityCompat
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.OneTimeWorkRequest
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.ichbinluka.downloader.data.supportedPlatforms
 import com.ichbinluka.downloader.ui.theme.DownloaderTheme
 import com.ichbinluka.downloader.ui.views.MainPage
 import com.ichbinluka.downloader.ui.views.Warning
+import com.ichbinluka.downloader.workers.DownloadType
 import com.ichbinluka.downloader.workers.DownloadWorker
 import com.ichbinluka.downloader.workers.UpdateWorker
 import com.yausername.ffmpeg.FFmpeg
@@ -30,9 +32,17 @@ abstract class DownloaderActivity : ComponentActivity() {
 
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "downloader"
+
+        fun createInputData(url: String, type: String): Data {
+            return Data.Builder()
+                .putString(DownloadWorker.URL_KEY, url)
+                .putString(DownloadWorker.DOWNLOAD_TYPE_KEY, type)
+                .putString(DownloadWorker.CHANNEL_ID_KEY, NOTIFICATION_CHANNEL_ID)
+                .build()
+        }
     }
 
-    abstract fun getDownloadRequestBuilder(): OneTimeWorkRequest.Builder
+    abstract val downloadType: DownloadType
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,13 +66,8 @@ abstract class DownloaderActivity : ComponentActivity() {
             YoutubeDL.getInstance().init(this)
             FFmpeg.getInstance().init(this)
 
-            val data = Data.Builder()
-                .putString(DownloadWorker.CHANNEL_ID_KEY, NOTIFICATION_CHANNEL_ID)
-                .putAll(mapOf(
-                    Pair("url", url)
-                ))
-                .build()
-            val builder = getDownloadRequestBuilder()
+            val data = createInputData(url, downloadType.name)
+            val builder = OneTimeWorkRequestBuilder<DownloadWorker>()
             val request = builder.setInputData(data)
             if (!supportedPlatforms.any { url.matches(it) }) {
                 setContent {

@@ -1,9 +1,8 @@
 package com.ichbinluka.downloader.activities
 
-import androidx.work.OneTimeWorkRequest
-import androidx.work.OneTimeWorkRequestBuilder
-import com.ichbinluka.downloader.workers.MusicDownloadWorker
+import com.ichbinluka.downloader.workers.DownloadType
 
 class MusicDownloaderActivity : DownloaderActivity() {
-    override fun getDownloadRequestBuilder(): OneTimeWorkRequest.Builder = OneTimeWorkRequestBuilder<MusicDownloadWorker>()
+    override val downloadType: DownloadType = DownloadType.MUSIC
+
 }

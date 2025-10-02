@@ -14,6 +14,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.ichbinluka.downloader.R
 import com.ichbinluka.downloader.activities.DownloaderActivity
+import com.ichbinluka.downloader.activities.TagEditorActivity
+import com.ichbinluka.downloader.services.RetryReceiver
 import com.ichbinluka.downloader.util.NotificationId
 import com.yausername.aria2c.Aria2c
 import com.yausername.ffmpeg.FFmpeg
@@ -23,23 +25,57 @@ import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.*
+import java.util.Calendar
 
-abstract class DownloadWorker(
+enum class DownloadType {
+    VIDEO {
+        override fun getAfterIntent(
+            context: Context,
+            file: File
+        ): Intent = Intent(Intent.ACTION_VIEW)
+    },
+    MUSIC {
+        override fun getAfterIntent(
+            context: Context,
+            file: File
+        ): Intent = Intent(context, TagEditorActivity::class.java)
+
+        override val ytDLArgs = listOf(
+            "-f" to "bestaudio",
+            "--extract-audio" to null,
+            "--audio-format" to "mp3",
+            "--audio-quality" to "0"
+        )
+
+    };
+
+    open val ytDLArgs = listOf<Pair<String, String?>>()
+    abstract fun getAfterIntent(context: Context, file: File): Intent
+}
+
+
+class DownloadWorker(
     context: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(
     params = params, appContext = context
 ) {
-    protected abstract val afterIntent: Intent
-
-    protected open val ytDLArgs = listOf<Pair<String, String?>>()
 
     private val ytDL: YoutubeDL by lazy {
         YoutubeDL.getInstance()
     }
 
     private val channelId: String = inputData.getString(CHANNEL_ID_KEY) ?: ""
+
+    private val downloadType: DownloadType = inputData.getString(DOWNLOAD_TYPE_KEY)?.let {
+        try {
+            DownloadType.valueOf(it)
+        } catch (_: IllegalArgumentException) {
+            DownloadType.VIDEO
+        }
+    } ?: DownloadType.VIDEO
+
+    private val ytDLArgs: List<Pair<String, String?>> = downloadType.ytDLArgs
 
     private val notification: NotificationCompat.Builder = NotificationCompat.Builder(
         context,
@@ -77,7 +113,7 @@ abstract class DownloadWorker(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
             "downloader"
         )
-        val url = inputData.getString("url") ?: return Result.failure()
+        val url = inputData.getString(URL_KEY) ?: return Result.failure()
         if (url != "") {
             val request = YoutubeDLRequest(url).apply {
                 addOption("-o", "${dir.absolutePath}/%(title)s.%(ext)s")
@@ -100,7 +136,7 @@ abstract class DownloadWorker(
                     notification.setContentTitle(applicationContext.getString(R.string.downloading, info.title))
                     updateNotification()
                     var currentProgress = 0f
-                    val response = ytDL.execute(request) { progress: Float, _, _ ->
+                    val response = ytDL.execute(request) { progress: Float, _, line ->
                         if (currentProgress > progress + 0.3f) {
                             notification.setContentTitle(applicationContext.getString(R.string.converting))
                         }
@@ -130,7 +166,7 @@ abstract class DownloadWorker(
                     } while (endFile.exists())
 
                     file.renameTo(endFile)
-
+                    val afterIntent = downloadType.getAfterIntent(applicationContext, file)
                     MediaScannerConnection.scanFile(applicationContext, arrayOf(endFile.path), null) { s, uri ->
                         afterIntent.data = uri
                         val flags = PendingIntent.FLAG_IMMUTABLE
@@ -143,10 +179,25 @@ abstract class DownloadWorker(
                     }
 
                 } catch (e: Exception) {
-                    Log.e(TAG, e.message ?: "")
+                    Log.e(TAG, "exception", e)
                     notification.setContentTitle(applicationContext.getString(R.string.download_error))
                     notification.setContentText(e.message)
                     notification.setProgress(0, 0, false)
+                    val actionIntent = Intent(applicationContext, RetryReceiver::class.java)
+                    actionIntent.putExtra(RetryReceiver.URL_KEY, url)
+                    actionIntent.putExtra(RetryReceiver.NOTIFICATION_ID_KEY, notificationId)
+                    actionIntent.putExtra(RetryReceiver.DOWNLOAD_TYPE_KEY, downloadType.name)
+                    val pendingIntent = PendingIntent.getBroadcast(
+                        applicationContext,
+                        0,
+                        actionIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    notification.addAction(
+                        0,  // No icon
+                        applicationContext.getString(R.string.retry),
+                        pendingIntent,
+                    )
                     updateNotification()
                     return@withContext Result.failure()
                 }
@@ -174,6 +225,8 @@ abstract class DownloadWorker(
     }
 
     companion object {
+        const val URL_KEY = "url"
+        const val DOWNLOAD_TYPE_KEY = "download_type"
         const val CHANNEL_ID_KEY = "channel_id"
         const val TAG = "Download Worker"
         private const val DESTINATION_TERM = "Destination:"
